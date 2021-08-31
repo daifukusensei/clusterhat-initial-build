@@ -1,0 +1,5 @@
+[nodes]
+p[1:4]
+
+[nodes:vars]
+ansible_ssh_user=pi

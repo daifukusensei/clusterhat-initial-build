@@ -1,0 +1,115 @@
+Initial node setup:
+1. Ensure manual steps for initial controller setup are complete
+2. Write CNAT Lite Controller image to card
+3. Change " quiet init=/sbin/reconfig-clusterctrl TYPE" in cmdline.txt in the boot partition, replacing TYPE with "p1", "p2", "p3 or "p4" for the node in question
+4. Create a file named ssh in boot partition to enable SSH
+5. If Pi Zero W, perform the following. Otherwise skip to next step:
+	a. Create a file named wpa_supplicant.conf in boot partition to allow for initial headless connection via WiFi, replacing XXXX below with the correct network password:
+	b. 	country=us
+		update_config=1
+		ctrl_interface=/var/run/wpa_supplicant
+
+		network={
+		  ssid="devers"
+		  psk="XXXX"
+		  id_str="home"
+		  priority=4
+		}
+6. PuTTY to controller
+7. clusterctrl on px (where x=number of new node from 1-4)
+8. ping 172.19.181.x (where x=number of new node from 1-4); wait until responsive
+9. SSH from controller to node with following default password:
+	clusterctrl
+10. sudo raspi-config
+11. Change password:
+	1 System Options -> S3 Password
+12. Change locale to en_US.UTF-8 UTF-8 only:
+	5 Localisation Options -> L1 Locale
+13. Change timezone:
+	5 Localisation Options -> L2 Timezone
+14. Exit raspi-config, do not reboot
+15. Enter the following:
+	export LANGUAGE=en_US.UTF-8
+	export LANG=en_US.UTF-8
+	export LC_ALL=en_US.UTF-8
+	sudo locale-gen en_US.UTF-8
+	sudo dpkg-reconfigure locales
+16. Reboot:
+	sudo shutdown -r now
+17. SSH back to node from controller
+18. If Pi Zero W, perform the following. Otherwise skip to next step:
+	a. Add a static IP per each wireless network needing headless SSH connectivity, as follows
+	b. sudo vi /etc/dhcpcd.conf
+	c. Append separate entries per wireless network to the end of the file, per below (where x=number of new node from 1-4):
+	d.	ssid null
+		static ip_address=192.168.43.10x/24
+		static routers=192.168.43.1
+		static domain_name_servers=192.168.43.1
+
+		ssid Schnauzer
+		static ip_address=192.168.0.10x/24
+		static routers=192.168.0.1
+		static domain_name_servers=192.168.0.1
+
+		ssid devers
+		static ip_address=172.16.2.10x/24
+		static routers=172.16.2.1
+		static domain_name_servers=172.16.2.1
+19. If Pi Zero W, perform the following. Otherwise skip to next step:
+	a. Add additional default WiFi networks per below, replacing XXXX with the correct network password
+	b. sudo vi /etc/wpa_supplicant/wpa_supplicant.conf
+	c.	network={
+			ssid="devers"
+			psk="XXXX"
+			id_str="home"
+			priority=4
+		}
+
+		network={
+			ssid="Schnauzer"
+			psk="XXXX"
+			id_str="calvin"
+			priority=3
+		}
+
+		network={
+			ssid="null"
+			psk="XXXX"
+			id_str="mobile"
+			priority=1
+		}
+		
+		(x=number; higher=greater priority)
+	d. Remove any control-M characters from the end of each line if they exist
+20. Reboot:
+	sudo shutdown -r now
+21. Update hosts file:
+	a. sudo vi /etc/hosts
+	b. Append other Pis (cluster and nodes) to end of file, where needed:
+		172.19.181.254  p0
+		172.19.181.1    p1
+		172.19.181.2    p2
+		172.19.181.3    p3
+		172.19.181.4    p4
+22. ssh-keygen -t rsa, accepting all defaults
+23. touch ~/.ssh/authorized_keys
+24. Add node's public key to all other nodes' authorized_keys file as follows:
+	a. cat ~/.ssh/id_rsa.pub
+	b. Copy string from above
+	c. vi ~/.ssh/authorized_keys on all other nodes and append string from b above
+25. Add node's public key to controller's authorized_keys file as follows:
+	a. cat ~/.ssh/id_rsa.pub
+	b. Copy string from above
+	c. vi ~/.ssh/authorized_keys on controller and append string from b above
+26. Add controller's public key to the node's authorized_keys file as follows:
+	a. cat ~/.ssh/id_rsa.pub on controller
+	b. Copy string from above
+	c. vi ~/.ssh/authorized_keys on node and append string from b above
+27. Update and upgrade:
+	sudo apt-get update
+	sudo apt-get upgrade
+28. Append the following line to /etc/fstab
+	a. sudo vi /etc/fstab
+	b. 172.19.181.254:/media/cluster /media/cluster nfs defaults 0 0
+29. Reboot:
+	sudo shutdown -r now

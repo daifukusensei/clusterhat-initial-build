@@ -1,0 +1,23 @@
+# From https://www.middlewareinventory.com/blog/ansible-update-etc-hosts-file-across-all-hosts/
+---
+- block:
+  - name: Add IP address of controller to /etc/hosts on node
+    become: yes
+    become_user: root
+    lineinfile:
+      path: "/etc/hosts"
+      regexp: ".*\tp0"
+      line: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['gateway'] }}\tp0"
+      state: present
+ 
+  - name: Update /etc/hosts on node with IP addresses of all other nodes
+    become: yes
+    become_user: root
+    lineinfile:
+      path: "/etc/hosts"
+      regexp: ".*\tp{{ item }}"
+      line: "{{ '172.19.181.' + item }}\t{{ 'p' + item }}"
+      state: present
+    when: inventory_hostname != 'p' + item
+    with_sequence: 1-4
+  tags: hosts_update

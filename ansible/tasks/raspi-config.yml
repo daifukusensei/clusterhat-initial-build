@@ -1,0 +1,17 @@
+---
+- block:
+  - name: Set locale
+    vars:
+      locale: "en_US.UTF-8"
+    command: raspi-config nonint do_change_locale {{ locale }}
+
+  - name: Set keyboard layout
+    vars:
+      keyboard_layout: "us"
+    command: raspi-config nonint do_configure_keyboard {{ keyboard_layout }}
+
+  - name: Set timezone
+    vars:
+      timezone: America/Toronto
+    command: raspi-config nonint do_change_timezone {{ timezone }}
+  tags: raspi-config

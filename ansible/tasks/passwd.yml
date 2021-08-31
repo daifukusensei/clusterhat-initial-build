@@ -1,0 +1,21 @@
+---
+- block:
+  - pause:
+      prompt: What is the new password for user pi?
+      echo: yes
+    register: newpassword
+    delegate_to: localhost
+    run_once: yes
+
+  - set_fact:
+      newpassword: "{{ newpassword.user_input }}"
+    delegate_to: localhost
+    delegate_facts: yes # Facts must be also be delegated to desired host
+    run_once: yes
+
+  - name: Change pi user's password
+    user:
+      name: pi
+      update_password: always
+      password: "{{ hostvars['localhost']['newpassword']|password_hash('sha512') }}"
+  tags: passwd

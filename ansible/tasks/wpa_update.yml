@@ -1,0 +1,43 @@
+---
+- block:
+  - pause:
+      prompt: What is Schnauzer's WiFi network password?
+      echo: yes
+    register: schnauzerpsk
+    delegate_to: localhost
+    run_once: yes
+
+  - pause:
+      prompt: What is null's WiFi network password?
+      echo: yes
+    register: nullpsk
+    delegate_to: localhost
+    run_once: yes
+
+  - set_fact:
+      schnauzerpsk: "{{ schnauzerpsk.user_input }}"
+      nullpsk: "{{ nullpsk.user_input }}"
+    delegate_to: localhost
+    delegate_facts: yes # Facts must be also be delegated to desired host
+    run_once: yes
+
+  - name: Add preferred WiFi networks with priorities to /etc/wpa_supplicant/wpa_supplicant.conf
+    become: yes
+    become_user: root
+    blockinfile:
+      path: "/etc/wpa_supplicant/wpa_supplicant.conf"
+      block: |
+        network={
+          ssid="Schnauzer"
+          psk="{{ hostvars['localhost']['schnauzerpsk'] }}"
+          id_str="calvin"
+          priority=3
+        }
+
+        network={
+          ssid="null"
+          psk="{{ hostvars['localhost']['nullpsk'] }}"
+          id_str="mobile"
+          priority=1
+        }
+  tags: wpa_update

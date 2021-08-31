@@ -1,0 +1,19 @@
+# First-time setup of all nodes: ansible-playbook -i hostsfile clusterhat_nodes_setup.yml -k
+# First-time setup of specific nodes: ansible-playbook -i hostsfile clusterhat_nodes_setup.yml --limit p1,p2 -k
+# Rebuild of specific nodes: ansible-playbook -i hostsfile clusterhat_nodes_setup.yml --limit p1,p2 --ssh-common-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' -k
+# Execution of specific task(s) post-setup: ansible-playbook -i hostsfile clusterhat_nodes_setup.yml --tags "key_exchange"
+---
+- name: Setup Cluster HAT node
+  hosts: nodes
+  become: yes
+
+  tasks:
+    - import_tasks: ../tasks/key_exchange.yml
+    - import_tasks: ../tasks/raspi-config.yml
+    - import_tasks: ../tasks/passwd.yml
+    - import_tasks: ../tasks/hosts_update.yml
+    - import_tasks: ../tasks/wpa_update.yml
+    - import_tasks: ../tasks/dhcpcd_update.yml
+    - import_tasks: ../tasks/fstab_update.yml
+    - import_tasks: ../tasks/apt_update.yml
+    - import_tasks: ../tasks/reboot.yml

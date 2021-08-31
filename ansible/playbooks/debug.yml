@@ -1,0 +1,5 @@
+---
+- hosts: nodes
+  gather_facts: yes
+  tasks:
+    - debug: var="{{ hostvars[inventory_hostname]['ansible_hostname'][-1] }}"

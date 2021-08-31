@@ -1,0 +1,135 @@
+Initial controller setup:
+1. Write CNAT Lite Controller image to card
+2. Create a file named ssh in boot partition to enable SSH
+3. Create a file named wpa_supplicant.conf in boot partition to allow for initial headless connection via WiFi, replacing XXXX below with the correct network password:
+	country=us
+	update_config=1
+	ctrl_interface=/var/run/wpa_supplicant
+
+	network={
+	 ssid="devers"
+	 psk="XXXX"
+	 id_str="home"
+	 priority=4
+	}
+4. Boot controller from card, using available network tool(s) to find assigned IP
+5. PuTTY to controller over WiFi with following default credentials:
+	Username: pi
+	Password: clusterctrl
+6. sudo raspi-config
+7. Change password:
+	1 System Options -> S3 Password
+8. Change hostname:
+	1 System Options -> S4 Hostname
+9. Change locale to en_US.UTF-8 UTF-8 only:
+	5 Localisation Options -> L1 Locale
+10. Change timezone:
+	5 Localisation Options -> L2 Timezone
+11. Exit raspi-config, do not reboot
+12. Enter the following:
+	export LANGUAGE=en_US.UTF-8
+	export LANG=en_US.UTF-8
+	export LC_ALL=en_US.UTF-8
+	sudo locale-gen en_US.UTF-8
+	sudo dpkg-reconfigure locales
+13. Reboot:
+	sudo shutdown -r now
+14. Add a static IP per each wireless network needing headless SSH connectivity, as follows:
+	a. sudo vi /etc/dhcpcd.conf
+	b. Append separate entries per wireless network to the end of the file, per below:
+	c.	ssid null
+		static ip_address=192.168.43.100/24
+		static routers=192.168.43.1
+		static domain_name_servers=192.168.43.1
+
+		ssid Schnauzer
+		static ip_address=10.0.0.100/24
+		static routers=10.0.0.1
+		static domain_name_servers=10.0.0.1
+
+		ssid devers
+		static ip_address=172.16.2.100/24
+		static routers=172.16.2.1
+		static domain_name_servers=172.16.2.1
+15. Add additional default WiFi networks per below, replacing XXXX with the correct network password:
+	a. sudo vi /etc/wpa_supplicant/wpa_supplicant.conf
+	b.	network={
+			ssid="devers"
+			psk="XXXX"
+			id_str="home"
+			priority=4
+		}
+
+		network={
+			ssid="Schnauzer"
+			psk="XXXX"
+			id_str="calvin"
+			priority=3
+		}
+
+		network={
+			ssid="null"
+			psk="XXXX"
+			id_str="mobile"
+			priority=1
+		}
+		
+		(x=number; higher=greater priority)
+	c. Remove any control-M characters from the end of each line if they exist
+16. Reboot:
+	sudo shutdown -r now
+17. Update hosts file:
+	a. sudo vi /etc/hosts
+	b. Append the following to end of file:
+		172.19.181.1    p1
+		172.19.181.2    p2
+		172.19.181.3    p3
+		172.19.181.4    p4
+18. ssh-keygen -t rsa, accepting all defaults
+19. touch ~/.ssh/authorized_keys
+20. Create SSH config file:
+	a. vi ~/.ssh/config
+	b.	Host p1
+			Hostname 172.19.181.1
+			User pi
+
+		Host p2
+			Hostname 172.19.181.2
+			User pi
+
+		Host p3
+			Hostname 172.19.181.3
+			User pi
+
+		Host p4
+			Hostname 172.19.181.4
+			User pi
+21. Create mount directory for USB drive:
+	sudo mkdir /media/cluster
+22. Insert FAT32-formatted USB drive and automount it:
+	a. Get UUID of drive:
+		sudo blkid
+	b. Append following line to /etc/fstab to automount USB drive:
+		UUID=<UUID from step a above> /media/cluster vfat rw,user,exec,umask=000 0 2
+23. Update and upgrade:
+	sudo apt-get update
+	sudo apt-get upgrade
+24. Install NFS server package
+	sudo apt-get install nfs-kernel-server -y
+25. Install tmux:
+	sudo apt-get install tmux
+26. Append below to /etc/exports:
+	/media/cluster 172.19.181.0/24(rw,sync,no_root_squash,no_subtree_check)
+27. Update table of exports:
+	sudo exportfs -ra
+28. Install Ansible:
+	sudo apt-get install python-pip
+	sudo pip install ansible
+29. Reboot:
+	sudo shutdown -r now
+
+Add steps:
+-install docker
+-install mpi
+-copy mpi findprime python scripts
+-copy tmux files

@@ -1,0 +1,20 @@
+---
+- name: Shutdown the Cluster HAT
+  hosts: nodes
+  become: yes
+  become_method: sudo
+  gather_facts: no
+
+  tasks:
+    - name: Shutdown nodes
+      shell: sleep 2 && shutdown -c && shutdown -h now
+      async: 1
+      poll: 0
+      ignore_errors: no
+
+    # Pause for 45 seconds to ensure nodes are shutdown
+    - pause: seconds=45
+
+    - name: Turn off the Cluster HAT
+      command: clusterhat off
+      delegate_to: 127.0.0.1

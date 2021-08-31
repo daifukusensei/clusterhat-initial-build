@@ -1,0 +1,10 @@
+---
+- name: Add /media/cluster NFS mount to /etc/fstab
+  become: yes
+  become_user: root
+  lineinfile:
+    path: "/etc/fstab"
+    regexp: ".*/media/cluster"
+    line: "172.19.181.254:/media/cluster /media/cluster nfs defaults,noatime 0 0"
+    state: present
+  tags: fstab_update

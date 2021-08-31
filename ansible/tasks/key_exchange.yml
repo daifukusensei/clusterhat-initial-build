@@ -1,0 +1,51 @@
+---
+- block:
+  - name: Generate SSH key-pair on node
+    become: yes
+    become_user: pi
+    shell: >
+      ssh-keygen -q -b 2048 -t rsa -N "" -C "{{ inventory_hostname }}" -f ~/.ssh/id_rsa
+      creates="~/.ssh/id_rsa"
+
+  - name: Fetch public keys from all nodes to controller
+    become: yes
+    become_user: pi
+    fetch:
+      src: "~/.ssh/id_rsa.pub"
+      dest: "p{{ item }}-id_rsa.pub"
+      flat: yes
+    with_sequence: 1-4
+    delegate_to: p{{ item }}
+    run_once: yes
+
+  - name: Add public key of node to authorized_keys on all other nodes
+    authorized_key:
+      user: pi
+      state: present
+      key: "{{ lookup('file','p{{ item[1] }}-id_rsa.pub') }}"
+    when: "'p' + item[0] != 'p' + item[1]"
+    loop: "{{ ['1', '2', '3', '4']|product(['1', '2', '3', '4'])|list }}"
+    delegate_to: p{{ item[0] }}
+    run_once: yes
+
+  - name: Add controller public key to authorized_keys on node
+    authorized_key:
+      user: pi
+      state: present
+      key: "{{ lookup('file','~/.ssh/id_rsa.pub') }}"
+
+  - name: Add public key of node to authorized_keys on controller
+    authorized_key:
+      user: pi
+      state: present
+      key: "{{ lookup('file','{{ inventory_hostname }}-id_rsa.pub') }}"
+    delegate_to: localhost
+
+  - name: Delete fetched public keys from controller
+    file:
+      path: "p{{ item }}-id_rsa.pub"
+      state: absent
+    with_sequence: 1-4
+    delegate_to: localhost
+    run_once: yes
+  tags: key_exchange
